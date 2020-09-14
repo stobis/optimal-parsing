@@ -4,14 +4,17 @@
 #include<string>
 #include<cassert>
 #include<iostream>
+#include <optimal-parsing/dictionary_opt.hpp>
+
 using namespace std;
 
 #define DBG 0
-// std::set<char> get_alphabet(std::string w) {
-//     set<char> S;
-//     for (auto c : w) S.insert(c);
-//     return S;
-// }
+
+std::set<char> get_alphabet(std::string const & w) {
+    std::set<char> S;
+    for (auto c : w) S.insert(c);
+    return S;
+}
 
 auto const TEST_WORDS = std::vector<std::string> {
         // "#",
@@ -50,7 +53,6 @@ public:
         // auto compressor = LZWCompressor(alpha);
         auto compressed = LZWCompressor<TrieReverseTrie, OptimalOutputParser>::compress(w);
         print(std::string{"Opt"}, w, compressed);
-        return;
         std::string decompressed = '#' + LZWDecompressor<TrieReverseTrie>::decompress(compressed, get_alphabet(w));
         
         assert(decompressed == w);
@@ -87,7 +89,7 @@ public:
     }
 
     std::string random_word(int m, std::vector<char> a) {
-        std::string res = "";
+        std::string res;
         for (int i = 0; i < m; ++i) {
             res += a[rand()%a.size()];
         }
@@ -95,11 +97,11 @@ public:
     }
 
     void test_large_random() {
-        auto m = 10;
+        auto m = 1000000;
 //        auto A = std::vector<char>{'a', 'b', 'c'};
         auto A = std::vector<char>();
         for (int i = 0; i < 26; ++i) A.push_back(char('a' + i));
-        for (int i = 0; i < 2; ++i) {
+        for (int i = 0; i < 1; ++i) {
             auto w = '#' + random_word(m, A);
             check_word(w);
         }

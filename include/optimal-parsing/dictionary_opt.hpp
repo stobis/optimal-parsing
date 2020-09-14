@@ -7,12 +7,12 @@
 
 class Trie;
 class ReverseTrie;
-class TrieReverseTrie2;
+class TrieReverseTrie;
 
 class Trie {
 private:
 
-    std::map<char, Trie*> children;
+    std::unordered_map<char, Trie*> children;
     Trie const * parent = nullptr;
     ReverseTrie const * link = nullptr;
     std::string label;
@@ -55,20 +55,12 @@ public:
         return this->children.count(c) ? this->children[c] : nullptr;
     }
 
-    Trie *contract() {
-        auto current = link->getParent();
-        while (current->parent != current && current->link == nullptr) {
-            current = current->parent;
-        }
-        return current->link;
-    }
-
     // Get & set
-    const std::map<char, Trie *> &getChildren() const {
+    const std::unordered_map<char, Trie *> &getChildren() const {
         return children;
     }
 
-    void setChildren(const std::map<char, Trie *> &children) {
+    void setChildren(const std::unordered_map<char, Trie *> &children) {
         Trie::children = children;
     }
 
@@ -116,7 +108,7 @@ public:
 class ReverseTrie {
 private:
 
-    std::map<char, ReverseTrie*> children;
+    std::unordered_map<char, ReverseTrie*> children;
     ReverseTrie const * parent = nullptr;
     Trie const * link = nullptr;
     Trie const * lower_bound = nullptr;
@@ -125,15 +117,14 @@ private:
 
 public:
 
-    ReverseTrie(const Trie *lower_bound, const Trie *upper_bound, bool terminal) : lower_bound(lower_bound),
-                                                                                   upper_bound(upper_bound),
-                                                                                   terminal(terminal) {}
+    ReverseTrie(const ReverseTrie *parent, const Trie *lower_bound, const Trie *upper_bound, bool terminal) : parent(
+            parent), lower_bound(lower_bound), upper_bound(upper_bound), terminal(terminal) {}
 
     ReverseTrie * insert(Trie const * const start, Trie const * const end) { // end to w 99% root Trie
         auto const start_label = start->getEdge();
         if (!children.count(start_label)) {
             // Needs totally new edge
-            children[start_label] = new ReverseTrie(start, end, true);
+            children[start_label] = new ReverseTrie(this, start, end, true);
             return children[start_label];
         }
         // Will go through some edge
@@ -153,9 +144,10 @@ public:
                 RT_lower_ptr = RT_lower_ptr->getParent();
             } else {
                 // We have to split
-                auto *internal = new ReverseTrie(child_node->getLower_bound(), RT_lower_ptr, false);
-                auto *side = new ReverseTrie(T_lower_ptr, T_upper_ptr, true);
+                auto *internal = new ReverseTrie(this, child_node->getLower_bound(), RT_lower_ptr, false);
+                auto *side = new ReverseTrie(internal, T_lower_ptr, T_upper_ptr, true);
                 child_node->setLower_bound(RT_lower_ptr);
+                child_node->setParent(internal);
 
                 internal->setChild(T_label, side);
                 internal->setChild(RT_label, child_node);
@@ -171,8 +163,9 @@ public:
             return child_node;
         } else if (T_lower_ptr == T_upper_ptr) {
             // I'm covered, but in RT there are a few chars left (so i become the new internal node)
-            auto *internal = new ReverseTrie(start, T_upper_ptr, true);
+            auto *internal = new ReverseTrie(this, start, T_upper_ptr, true);
             child_node->setLower_bound(RT_lower_ptr);
+            child_node->setParent(internal);
 
             internal->setChild(RT_lower_ptr->getEdge(), child_node);
             setChild(start_label, internal);
@@ -185,11 +178,11 @@ public:
     }
 
     // Get & set
-    const std::map<char, ReverseTrie *> &getChildren() const {
+    const std::unordered_map<char, ReverseTrie *> &getChildren() const {
         return children;
     }
 
-    void setChildren(const std::map<char, ReverseTrie *> &children) {
+    void setChildren(const std::unordered_map<char, ReverseTrie *> &children) {
         ReverseTrie::children = children;
     }
 
@@ -238,7 +231,7 @@ public:
     }
 };
 
-class TrieReverseTrie2 {
+class TrieReverseTrie {
 private:
   Trie * trie;
   ReverseTrie * trie_rev;
@@ -246,16 +239,20 @@ private:
 
 public:
 
-  TrieReverseTrie2() {
+  TrieReverseTrie() {
       trie = new Trie(nullptr, 0, 0);
-      trie_rev = new ReverseTrie(nullptr, nullptr, false);
+      trie_rev = new ReverseTrie(nullptr, nullptr, nullptr, false);
       size = 0;
 
       trie->setLink(trie_rev);
       trie_rev->setLink(trie);
   }
 
-  Trie * insert(Trie * const node, std::string const & w, std::string const & wr, std::string const & code) {
+  Trie * insert(std::string const & w, std::string const & code) {
+      return insert(trie, w, code);
+  }
+
+  Trie * insert(Trie * const node, std::string const & w, std::string const & code) {
     size += 1;
     auto new_node = node->insert(w, code);
     auto new_node_rev = trie_rev->insert(new_node, trie);
@@ -269,12 +266,63 @@ public:
   }
 
   std::string get_prefix(Trie const * node) {
-    std::string prefix = "";
-    while (node->getParent() != node) {
+    std::string prefix;
+    while (node->getParent() != nullptr) {
       prefix += node->getEdge();
       node = node->getParent();
     }
     std::reverse(prefix.begin(), prefix.end());
     return prefix;
   }
+
+    Trie *getTrie() const {
+        return trie;
+    }
+
+    ReverseTrie *getTrie_rev() const {
+        return trie_rev;
+    }
+
+    int getSize() const {
+        return size;
+    }
+
+//    virtual ~TrieReverseTrie() {
+//        destroy(trie);
+//        destroy(trie_rev);
+//    }
+
+    void destroy(Trie* node) {
+        if (node != nullptr) {
+            if (node->getChildren().empty()) {
+                delete(node);
+                return;
+            }
+
+            for (auto & child : node->getChildren()) {
+                destroy(child.second);
+            }
+        }
+    }
+
+    void destroy(ReverseTrie* node) {
+        if (node != nullptr) {
+            if (node->getChildren().empty()) {
+                delete(node);
+                return;
+            }
+
+            for (auto & child : node->getChildren()) {
+                destroy(child.second);
+            }
+        }
+    }
 };
+
+Trie * contract(Trie * node) {
+    auto current = node->getLink()->getParent();
+    while (current->getParent() != current && current->getLink() == nullptr) {
+        current = current->getParent();
+    }
+    return const_cast<Trie *>(current->getLink());
+}

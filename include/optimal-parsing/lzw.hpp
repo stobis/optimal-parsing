@@ -1,3 +1,7 @@
+#include <utility>
+
+#include <utility>
+
 #pragma once
 
 #include <set>
@@ -8,13 +12,13 @@
 #include <parser.hpp>
 #include <dictionary.hpp>
 
-
+template <typename Dict>
 class LZWDictParser : public DictParser {
 public:
-    LZWDictParser(TrieReverseTrie * dictionary) : DictParser(
+    explicit LZWDictParser(Dict * dictionary) : DictParser(
         dictionary,
-        [](DictParser const * d, char c) { return std::to_string(d->dict->size); },
-        [](DictParser const * d, char c) { return d->dict->trie->search(std::string{c}); }
+        [](DictParser const * d) { return std::to_string(d->dict->getSize()); },
+        [](DictParser const * d, char c) { return d->dict->getTrie()->search(std::string{c}); }
     ) {}
 };
 
@@ -25,24 +29,24 @@ private:
     std::set<char> alphabet;
     Dict dictionary;
 
-    LZWDictParser * parser_dict;
+    LZWDictParser<Dict> * parser_dict;
     Po * parser_out;
 
     void reset() {
-        dictionary = TrieReverseTrie();
+        dictionary = Dict();
         int i = 0;
         for (auto c : alphabet) {
             auto label = std::to_string(i++);
-            dictionary.insert(dictionary.trie, std::string{c}, std::string{c}, label);
+            dictionary.insert(std::string{c}, label);
         }
 
-        parser_dict = new LZWDictParser(&dictionary);
-        parser_out = new Po(&dictionary); // todo: uwaga na to czy to nie musza byc te same dicty a nie tylko copy assignment (a chyba musza, czyli daj ptry)
+        parser_dict = new LZWDictParser<Dict>(&dictionary);
+        parser_out = new Po(&dictionary);
     }
 
 public:
 
-    LZWCompressor(std::set<char> const & alphabet) : alphabet(alphabet) {
+    explicit LZWCompressor(std::set<char> alphabet) : alphabet(std::move(alphabet)) {
         reset();
     }
 
@@ -65,7 +69,7 @@ public:
         // Construct instance of compressor and compress
         auto instance = LZWCompressor<Dict, Po>(alpha);
         auto compressed = std::vector<std::string>();
-        for (int i = 1; i < w.size(); ++i) {
+        for (std::size_t i = 1; i < w.size(); ++i) {
             auto code = instance.parse(w[i]);
             if (code != "") {
                 compressed.push_back(code);
@@ -88,30 +92,30 @@ private:
     std::set<char> alphabet;
     Dict dictionary;
 
-    LZWDictParser * parser_dict;
-    std::unordered_map<int, TrieDict*> reference;
+    LZWDictParser<Dict> * parser_dict;
+    std::unordered_map<int, Trie*> reference;
 
     void reset() {
-        dictionary = TrieReverseTrie();
-        reference = std::unordered_map<int, TrieDict*>();
+        dictionary = Dict();
+        reference = std::unordered_map<int, Trie*>();
         int i = 0;
         for (auto c : alphabet) {
             auto label = std::to_string(i);
-            reference[i] = dictionary.insert(dictionary.trie, std::string{c}, std::string{c}, label);
+            reference[i] = dictionary.insert(std::string{c}, label);
             i++;
         }
 
-        parser_dict = new LZWDictParser(&dictionary);
+        parser_dict = new LZWDictParser<Dict>(&dictionary);
     }
 
 public:
 
-    LZWDecompressor(std::set<char> const & alphabet) : alphabet(alphabet) {
+    explicit LZWDecompressor(std::set<char> alphabet) : alphabet(std::move(alphabet)) {
         reset();
     }
 
     std::string parse(int const c) {
-        auto parsed = std::string{""};
+        std::string parsed;
 
         while (!reference.count(c)) {
             auto node = parser_dict->phrase;
@@ -120,9 +124,9 @@ public:
             for (auto x : prefix) {
                 parsed += x;
                 auto added = parser_dict->parse(x);
-                if (added != NULL) {
-                    reference[stoi(added->label)] = added;
-                    if (stoi(added->label) == c) {
+                if (added != nullptr) {
+                    reference[stoi(added->getLabel())] = added;
+                    if (stoi(added->getLabel()) == c) {
                         break;
                     }
                 }
@@ -132,11 +136,11 @@ public:
         auto node = reference[c];
         auto phrase = parser_dict->dict->get_prefix(node);
 
-        for (int i = parsed.size(); i < phrase.size(); ++i) {
+        for (std::size_t i = parsed.size(); i < phrase.size(); ++i) {
             auto x = phrase[i];
             auto added = parser_dict->parse(x);
-            if (added != NULL) {
-                reference[stoi(added->label)] = added;
+            if (added != nullptr) {
+                reference[stoi(added->getLabel())] = added;
             }
         }
 
@@ -150,35 +154,3 @@ public:
         return ans;
     }
 };
-
-std::set<char> get_alphabet(std::string const & w) {
-    std::set<char> S;
-    for (auto c : w) S.insert(c);
-    return S;
-}
-
-// vector<string> lzw_compress(w, parser_output=parser.OptimalOutputParser) {
-//     auto alphabet = get_alphabet(w);
-//     instance = LZWCompressor<LZWDictParser, OptimalOutputParser>(alphabet);
-//     auto compressed = vector<string>();
-//     for (int i = 1; i < w.size(); ++i) {
-//         auto code = instance.parse(c);
-//         if (code != "") {
-//             compressed.push_back(code);
-//         }
-//     }
-//     auto code = instance.finish();
-//     if (code != "") {
-//         for (auto r : code) {
-//             compressed.push_back(code);
-//         }
-//     }
-//     return compressed;
-// }
-
-// string lzw_decompress(string code, set<char> alphabet) {
-//     auto instance = LZWDecompressor(alphabet);
-//     std::string ans = "";
-//     for (auto c: code) ans += parse(int(c));
-//     return ans;
-// }
