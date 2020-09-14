@@ -105,7 +105,7 @@ public:
             auto tmp_offset = 0;
             auto tmp_depth = phrase->depth;
             while (true) {
-                auto longest_suffix = phrase->contract();
+                auto longest_suffix = phrase->contract(); // it could also take long
                 tmp_offset += phrase->depth - longest_suffix->depth;
                 extended = longest_suffix->extend(c);
                 if (extended == NULL) {

@@ -3,35 +3,36 @@
 #include <map>
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 
 class TrieDict {
 public:
 
     std::map<char, TrieDict*> children;
     TrieDict * link;
-    bool terminal;
+//    bool terminal;
     std::string label;
     std::string edge;
     int depth;
-    int index;
+//    int index;
     TrieDict * parent;
 
 // public:
 
     TrieDict(std::string label, std::string edge = "", int depth = 0, int index = -1, TrieDict * parent = NULL) {
         this->link = NULL;
-        this->terminal = false;
+//        this->terminal = false;
 
         this->label = label;
         this->edge = edge;
         this->depth = depth;
-        this->index = index;
+//        this->index = index;
         
         if (parent == NULL) this->parent = this;
         else this->parent = parent;
     }
 
-  TrieDict * insert(std::string w, std::string code, int index = -1) {
+  TrieDict * insert(std::string const & w, std::string const & code, int index = -1) {
     auto current = this;
     for (auto const & c: w) {
         if (!current->children.count(c)) {
@@ -39,9 +40,9 @@ public:
         }
         current = current->children[c];
     }
-    current->terminal = true;
+//    current->terminal = true;
     current->label = code;
-    current->index = index;
+//    current->index = index;
 
     return current;
   }
@@ -100,16 +101,16 @@ public:
       this->trie_rev->connect(this->trie);
   }
 
-  TrieDict * insert(TrieDict * node, std::string w, std::string wr, std::string code) {
+  TrieDict * insert(TrieDict * const node, std::string const & w, std::string const & wr, std::string const & code) {
     this->size += 1;
     auto new_node = node->insert(w, code, this->size);
-    auto new_node_rev = this->trie_rev->insert(wr, code, this->size);
+    auto new_node_rev = this->trie_rev->insert(wr, code, this->size); // it's probably time-consuming
     new_node->connect(new_node_rev);
     new_node_rev->connect(new_node);
     return new_node;
   }
 
-  TrieDict * search(std::string w) {
+  TrieDict * search(std::string const & w) {
     return this->trie->search(w);
   }
 

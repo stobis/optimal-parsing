@@ -37,18 +37,20 @@ auto const TEST_WORDS_LZ78_OPTIMAL = std::vector<std::string> {
 class Test {
 public:
 
-    void print(std::string label, std::string w, std::vector<std::string> const & vec) {
+    void print(std::string label, std::string const & w, std::vector<std::string> const & vec) {
         if (!DBG) return;
         std::cout << label << " for " << w << std::endl;
         for (auto x : vec) std::cout << x << ";";
         std::cout << endl;
     }
 
-    void check_word(std::string w) {
+    void check_word(std::string const & w) {
+        // if (DBG) std::cout << "CHECK " << w << std::endl;
         // auto alpha = get_alphabet(w);
         // auto compressor = LZWCompressor(alpha);
         auto compressed = LZWCompressor<TrieReverseTrie, OptimalOutputParser>::compress(w);
         print(std::string{"Opt"}, w, compressed);
+        return;
         std::string decompressed = '#' + LZWDecompressor<TrieReverseTrie>::decompress(compressed, get_alphabet(w));
         
         assert(decompressed == w);
@@ -94,8 +96,10 @@ public:
 
     void test_large_random() {
         auto m = 10;
-        auto A = std::vector<char>{'a', 'b', 'c'};
-        for (int i = 0; i < 1000; ++i) {
+//        auto A = std::vector<char>{'a', 'b', 'c'};
+        auto A = std::vector<char>();
+        for (int i = 0; i < 26; ++i) A.push_back(char('a' + i));
+        for (int i = 0; i < 2; ++i) {
             auto w = '#' + random_word(m, A);
             check_word(w);
         }

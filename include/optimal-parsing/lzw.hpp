@@ -58,7 +58,7 @@ public:
         return codes;
     }
 
-    static std::vector<std::string> compress(std::string w) {
+    static std::vector<std::string> compress(std::string const & w) {
         // Construct alphabet
         std::set<char> alpha;
         for (auto c : w) alpha.insert(c);
@@ -143,7 +143,7 @@ public:
         return phrase;
     }
 
-    static std::string decompress(std::vector<std::string> code, std::set<char> alphabet) {
+    static std::string decompress(std::vector<std::string> const & code, std::set<char> const & alphabet) {
         auto instance = LZWDecompressor<Dict>(alphabet);
         std::string ans = "";
         for (auto c: code) ans += instance.parse(std::stoi(c));
@@ -151,7 +151,7 @@ public:
     }
 };
 
-std::set<char> get_alphabet(std::string w) {
+std::set<char> get_alphabet(std::string const & w) {
     std::set<char> S;
     for (auto c : w) S.insert(c);
     return S;
