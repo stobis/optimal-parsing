@@ -1,34 +1,26 @@
-#include <utility>
-
 #pragma once
 
 #include<algorithm>
-#include<dictionary.hpp>
 #include<functional>
-#include<stdexcept>
 #include<iostream>
+#include<stdexcept>
+#include<utility>
+
 #include "lzw.hpp"
 #include "dictionary_opt.hpp"
 
+template<typename Dict>
 class DictParser {
 public:
-    TrieReverseTrie * dict;
-    Trie * phrase;
-    std::function<std::string(DictParser*)> label_extractor;
-    std::function<Trie*(DictParser*, char)> extension_callback;
+    TrieReverseTrie *dict;
+    Trie *phrase;
 
-    DictParser(
-        TrieReverseTrie * dictionary, 
-        std::function<std::string(DictParser*)> label_extractor,
-        std::function<Trie*(DictParser*, char)> extension_callback
-    ) {
+    explicit DictParser(Dict *dictionary) {
         dict = dictionary;
         phrase = dict->getTrie();
-        this->label_extractor = std::move(label_extractor);
-        this->extension_callback = std::move(extension_callback);
     }
 
-    Trie * parse(char c) {
+    Trie *parse(char c) {
         auto extended = phrase->extend(c);
         if (extended == nullptr) {
             auto node = dict->insert(phrase, std::string{c}, dict->getSize());
@@ -42,11 +34,11 @@ public:
 
 class OutputParser {
 protected:
-    TrieReverseTrie * dict;
-    Trie * phrase;
+    TrieReverseTrie *dict;
+    Trie *phrase;
 public:
 
-    explicit OutputParser(TrieReverseTrie * dictionary) {
+    explicit OutputParser(TrieReverseTrie *dictionary) {
         dict = dictionary;
         phrase = dict->getTrie();
     }
@@ -61,7 +53,7 @@ public:
 class GreedyOutputParser : public OutputParser {
 public:
 
-    explicit GreedyOutputParser(TrieReverseTrie * dictionary) : OutputParser(dictionary) {}
+    explicit GreedyOutputParser(TrieReverseTrie *dictionary) : OutputParser(dictionary) {}
 
     int parse(char c) override {
         auto extended = phrase->extend(c);
@@ -75,7 +67,7 @@ public:
     }
 
     std::vector<int> flush() override {
-        auto code = parse('_'); // TODO
+        auto code = parse('\0');
         auto ans = std::vector<int>();
         if (code != -1) ans.push_back(code);
         return ans;
@@ -89,7 +81,7 @@ private:
 
 public:
 
-    explicit OptimalOutputParser(TrieReverseTrie * dictionary) : OutputParser(dictionary) {
+    explicit OptimalOutputParser(TrieReverseTrie *dictionary) : OutputParser(dictionary) {
         beginning = 1, f_beginning = 1, offset = 0;
         tmp_out = "";
     }
@@ -132,7 +124,7 @@ public:
         return -1;
     }
 
-  std::vector<int> flush() override {
+    std::vector<int> flush() override {
         auto code = std::vector<int>();
         if (offset > 0) {
             auto tmp_node = dict->search(tmp_out.substr(0, offset));
@@ -144,5 +136,5 @@ public:
             code.push_back(tmp_node->getLabel());
         }
         return code;
-  }
+    }
 };

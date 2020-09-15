@@ -1,20 +1,22 @@
-
 #pragma once
-#include <map>
+
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <unordered_map>
 
 class Trie;
+
 class ReverseTrie;
+
 class TrieReverseTrie;
 
 class Trie {
 private:
 
-    std::unordered_map<char, Trie*> children;
-    Trie const * parent = nullptr;
-    ReverseTrie const * link = nullptr;
+    std::unordered_map<char, Trie *> children;
+    Trie const *parent = nullptr;
+    ReverseTrie const *link = nullptr;
     int label{};
     int depth;
     char edge;
@@ -23,9 +25,9 @@ public:
 
     Trie(const Trie *parent, int depth, char edge) : parent(parent), depth(depth), edge(edge) {}
 
-    Trie * insert(std::string const & w, int const & code) {
+    Trie *insert(std::string const &w, int const &code) {
         auto current = this;
-        for (auto const & c: w) {
+        for (auto const &c: w) {
             if (!current->children.count(c)) {
                 current->children[c] = new Trie(current, current->depth + 1, c);
             }
@@ -36,13 +38,13 @@ public:
         return current;
     }
 
-    Trie * search(std::string const & w) {
+    Trie *search(std::string const &w) {
         auto current = this;
 
         if (w.empty()) {
             return current;
         }
-        for (auto const & c: w) {
+        for (auto const &c: w) {
             if (!current->children.count(c)) {
                 return nullptr;
             }
@@ -105,7 +107,7 @@ public:
     }
 
     ~Trie() {
-        for (auto & child : children) {
+        for (auto &child : children) {
             delete child.second;
         }
     }
@@ -114,11 +116,11 @@ public:
 class ReverseTrie {
 private:
 
-    std::unordered_map<char, ReverseTrie*> children;
-    ReverseTrie const * parent = nullptr;
-    Trie const * link = nullptr;
-    Trie const * lower_bound = nullptr;
-    Trie const * upper_bound = nullptr;
+    std::unordered_map<char, ReverseTrie *> children;
+    ReverseTrie const *parent = nullptr;
+    Trie const *link = nullptr;
+    Trie const *lower_bound = nullptr;
+    Trie const *upper_bound = nullptr;
 
 public:
 
@@ -127,7 +129,7 @@ public:
                                                                                                upper_bound(
                                                                                                        upper_bound) {}
 
-    ReverseTrie * insert(Trie const * const start, Trie const * const end) {
+    ReverseTrie *insert(Trie const *const start, Trie const *const end) {
         auto const start_label = start->getEdge();
         if (!children.count(start_label)) {
             // Needs totally new edge
@@ -229,7 +231,7 @@ public:
     }
 
     ~ReverseTrie() {
-        for (auto & child : children) {
+        for (auto &child : children) {
             delete child.second;
         }
     }
@@ -237,47 +239,47 @@ public:
 
 class TrieReverseTrie {
 private:
-  Trie * trie;
-  ReverseTrie * trie_rev;
-  int size;
+    Trie *trie;
+    ReverseTrie *trie_rev;
+    int size;
 
 public:
 
-  TrieReverseTrie() {
-      trie = new Trie(nullptr, 0, 0);
-      trie_rev = new ReverseTrie(nullptr, nullptr, nullptr);
-      size = 0;
+    TrieReverseTrie() {
+        trie = new Trie(nullptr, 0, 0);
+        trie_rev = new ReverseTrie(nullptr, nullptr, nullptr);
+        size = 0;
 
-      trie->setLink(trie_rev);
-      trie_rev->setLink(trie);
-  }
-
-  Trie * insert(std::string const & w, int const & code) {
-      return insert(trie, w, code);
-  }
-
-  Trie * insert(Trie * const node, std::string const & w, int const & code) {
-    size += 1;
-    auto new_node = node->insert(w, code);
-    auto new_node_rev = trie_rev->insert(new_node, trie);
-    new_node->setLink(new_node_rev);
-    new_node_rev->setLink(new_node);
-    return new_node;
-  }
-
-  Trie * search(std::string const & w) {
-    return trie->search(w);
-  }
-
-  std::string get_prefix(Trie const * node) {
-    std::string prefix;
-    while (node->getParent() != nullptr) {
-      prefix += node->getEdge();
-      node = node->getParent();
+        trie->setLink(trie_rev);
+        trie_rev->setLink(trie);
     }
-    std::reverse(prefix.begin(), prefix.end());
-    return prefix;
-  }
+
+    Trie *insert(std::string const &w, int const &code) {
+        return insert(trie, w, code);
+    }
+
+    Trie *insert(Trie *const node, std::string const &w, int const &code) {
+        size += 1;
+        auto new_node = node->insert(w, code);
+        auto new_node_rev = trie_rev->insert(new_node, trie);
+        new_node->setLink(new_node_rev);
+        new_node_rev->setLink(new_node);
+        return new_node;
+    }
+
+    Trie *search(std::string const &w) {
+        return trie->search(w);
+    }
+
+    std::string get_prefix(Trie const *node) {
+        std::string prefix;
+        while (node->getParent() != nullptr) {
+            prefix += node->getEdge();
+            node = node->getParent();
+        }
+        std::reverse(prefix.begin(), prefix.end());
+        return prefix;
+    }
 
     Trie *getTrie() const {
         return trie;
@@ -297,7 +299,7 @@ public:
     }
 };
 
-Trie * contract(Trie * node) {
+Trie *contract(Trie *node) {
     auto current = node->getLink()->getParent();
     while (current->getParent() != current && current->getLink() == nullptr) {
         current = current->getParent();
