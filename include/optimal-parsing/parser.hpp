@@ -31,7 +31,7 @@ public:
     Trie * parse(char c) {
         auto extended = phrase->extend(c);
         if (extended == nullptr) {
-            auto node = dict->insert(phrase, std::string{c}, std::to_string(dict->getSize()));
+            auto node = dict->insert(phrase, std::string{c}, dict->getSize());
             phrase = dict->getTrie()->search(std::string{c});
             return node;
         }
@@ -51,9 +51,9 @@ public:
         phrase = dict->getTrie();
     }
 
-    virtual std::string parse(char) = 0;
+    virtual int parse(char) = 0;
 
-    virtual std::vector<std::string> flush() = 0;
+    virtual std::vector<int> flush() = 0;
 };
 
 class GreedyOutputParser : public OutputParser {
@@ -61,7 +61,7 @@ public:
 
     explicit GreedyOutputParser(TrieReverseTrie * dictionary) : OutputParser(dictionary) {}
 
-    std::string parse(char c) override {
+    int parse(char c) override {
         auto extended = phrase->extend(c);
         if (extended == nullptr) {
             auto code = phrase->getLabel();
@@ -69,13 +69,13 @@ public:
             return code;
         }
         phrase = extended;
-        return std::string("");
+        return -1;
     }
 
-    std::vector<std::string> flush() override {
+    std::vector<int> flush() override {
         auto code = parse('_'); // TODO
-        auto ans = std::vector<std::string>();
-        if (!code.empty()) ans.push_back(code);
+        auto ans = std::vector<int>();
+        if (code != -1) ans.push_back(code);
         return ans;
     }
 };
@@ -92,7 +92,7 @@ public:
         tmp_out = "";
     }
 
-    std::string parse(char c) override {
+    int parse(char c) override {
         tmp_out += c;
         auto extended = phrase->extend(c);
         if (extended == nullptr) {
@@ -123,15 +123,15 @@ public:
                 return code;
             }
             offset += tmp_offset;
-            return std::string();
+            return -1;
         }
         phrase = extended;
 
-        return std::string();
+        return -1;
     }
 
-  std::vector<std::string> flush() override {
-        auto code = std::vector<std::string>();
+  std::vector<int> flush() override {
+        auto code = std::vector<int>();
         if (offset > 0) {
             auto tmp_node = dict->search(tmp_out.substr(0, offset));
             code.push_back(tmp_node->getLabel());

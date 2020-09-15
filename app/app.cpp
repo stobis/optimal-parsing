@@ -8,7 +8,7 @@
 
 using namespace std;
 
-#define DBG 0
+int DBG = 1; // 0 - none, 1 - stats, 2 - full
 
 std::set<char> get_alphabet(std::string const & w) {
     std::set<char> S;
@@ -17,70 +17,62 @@ std::set<char> get_alphabet(std::string const & w) {
 }
 
 auto const TEST_WORDS = std::vector<std::string> {
-        // "#",
-        // "#a",
-        "#abababaabaabaaab",
-        "#aaabbabaabaaabab",
-        "#abababcccacadcadaabcada",
-        "#ababcbababaa",
-        "#abbbcaabbcbbcaaac",
-        "#abccdeabccdeacdeacdeacde",
-        "#bcbbbacbba",
-        "#bbbbb"
+        "",
+        "a",
+        "abababaabaabaaab",
+        "aaabbabaabaaabab",
+        "abababcccacadcadaabcada",
+        "ababcbababaa",
+        "abbbcaabbcbbcaaac",
+        "abccdeabccdeacdeacdeacde",
+        "bcbbbacbba",
+        "bbbbb"
 };
 
-auto const TEST_WORDS_LZW_OPTIMAL = std::vector<std::string> {
-                                                           "#abababaabaabaaab"
-                                                   };
-
-auto const TEST_WORDS_LZ78_OPTIMAL = std::vector<std::string> {
-                                                            "#abababcccacadcadaabcada"
-                                                    };
+auto const TEST_WORDS_LZW_OPTIMAL = std::vector<std::string> {"abababaabaabaaab"};
 
 class Test {
 public:
 
-    void print(std::string label, std::string const & w, std::vector<std::string> const & vec) {
-        if (!DBG) return;
+    void print(const std::string &label, std::string const & w, std::vector<int> const & vec) {
+        if (DBG < 2) return;
         std::cout << label << " for " << w << std::endl;
         for (auto x : vec) std::cout << x << ";";
         std::cout << endl;
     }
 
     void check_word(std::string const & w) {
-        // if (DBG) std::cout << "CHECK " << w << std::endl;
-        // auto alpha = get_alphabet(w);
-        // auto compressor = LZWCompressor(alpha);
         auto compressed = LZWCompressor<TrieReverseTrie, OptimalOutputParser>::compress(w);
+//        return;
         print(std::string{"Opt"}, w, compressed);
-        std::string decompressed = '#' + LZWDecompressor<TrieReverseTrie>::decompress(compressed, get_alphabet(w));
+        std::string decompressed = LZWDecompressor<TrieReverseTrie>::decompress(compressed, get_alphabet(w));
         
         assert(decompressed == w);
-
+//        return;
         auto compressed_greedy = LZWCompressor<TrieReverseTrie, GreedyOutputParser>::compress(w);
         print(std::string{"Gre"}, w, compressed_greedy);
-        std::string decompressed_greedy = '#' + LZWDecompressor<TrieReverseTrie>::decompress(compressed, get_alphabet(w));
+        std::string decompressed_greedy = LZWDecompressor<TrieReverseTrie>::decompress(compressed, get_alphabet(w));
         
         assert(decompressed_greedy == w);
         assert(compressed.size() <= compressed_greedy.size());
     }
 
     void test_empty() {
-        check_word("#");
+        check_word("");
     }
 
     void test_one_letter() {
-        check_word("#a");
+        check_word("a");
     }
 
     void test_hand() {
-        for (auto w : TEST_WORDS) {
+        for (const auto &w : TEST_WORDS) {
             check_word(w);
         }
     }
 
     void test_lzw_optimality() {
-        for (auto w : TEST_WORDS_LZW_OPTIMAL) {
+        for (const auto &w : TEST_WORDS_LZW_OPTIMAL) {
             auto compressed = LZWCompressor<TrieReverseTrie, OptimalOutputParser>::compress(w);
             auto compressed_greedy = LZWCompressor<TrieReverseTrie, GreedyOutputParser>::compress(w);
 
@@ -97,12 +89,13 @@ public:
     }
 
     void test_large_random() {
-        auto m = 1000000;
-//        auto A = std::vector<char>{'a', 'b', 'c'};
+//        srand(time(NULL));
+        srand(123);
+        auto m = 1000;
         auto A = std::vector<char>();
         for (int i = 0; i < 26; ++i) A.push_back(char('a' + i));
         for (int i = 0; i < 1; ++i) {
-            auto w = '#' + random_word(m, A);
+            auto w = random_word(m, A);
             check_word(w);
         }
     }
@@ -112,6 +105,9 @@ int main() {
     std::ios_base::sync_with_stdio(false);
 
     Test test;
+    test.test_large_random();
+    std::cout << "Large random ok" << std::endl;
+    return 0;
     std::cout << "Init ok" << std::endl;
     test.test_hand();
     std::cout << "Hand ok" << std::endl;

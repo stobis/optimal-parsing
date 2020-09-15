@@ -12,6 +12,7 @@
 #include <parser.hpp>
 #include <dictionary.hpp>
 
+extern int DBG;
 template <typename Dict>
 class LZWDictParser : public DictParser {
 public:
@@ -36,8 +37,7 @@ private:
         dictionary = Dict();
         int i = 0;
         for (auto c : alphabet) {
-            auto label = std::to_string(i++);
-            dictionary.insert(std::string{c}, label);
+            dictionary.insert(std::string{c}, i++);
         }
 
         parser_dict = new LZWDictParser<Dict>(&dictionary);
@@ -50,28 +50,27 @@ public:
         reset();
     }
 
-    std::string parse(char c) {
+    int parse(char c) {
         auto code = parser_out->parse(c);
         parser_dict->parse(c);
         return code;
     }
 
-    std::vector<std::string> flush() {
+    std::vector<int> flush() {
         auto codes = parser_out->flush();
-        reset();
         return codes;
     }
 
-    static std::vector<std::string> compress(std::string const & w) {
+    static std::vector<int> compress(std::string const & w) {
         // Construct alphabet
         std::set<char> alpha;
         for (auto c : w) alpha.insert(c);
         // Construct instance of compressor and compress
         auto instance = LZWCompressor<Dict, Po>(alpha);
-        auto compressed = std::vector<std::string>();
-        for (std::size_t i = 1; i < w.size(); ++i) {
-            auto code = instance.parse(w[i]);
-            if (code != "") {
+        auto compressed = std::vector<int>();
+        for (auto c : w) {
+            auto code = instance.parse(c);
+            if (code != -1) {
                 compressed.push_back(code);
             }
         }
@@ -80,6 +79,16 @@ public:
             for (auto const & r : code) {
                 compressed.push_back(r);
             }
+        }
+
+        if (DBG) {
+            std::cout << "=== STATS ===" << std::endl;
+            auto siz = instance.dictionary.getSize();
+            auto t = w.size()-1;
+            std::cout << "Sizeofs of Trie, ReverseTrie, ptr: " << sizeof(Trie) << " " << sizeof(ReverseTrie) << " " << sizeof(Trie*) << std::endl;
+            std::cout << "|D| real: " << siz << std::endl;
+            std::cout << "|D| theoretical estimation = O(|T|/log |T|): " << t/logl(t) << std::endl;
+            std::cout << "Estimated memory taken (based on sizeofs): " << (static_cast<long double>(siz * 1 * sizeof(Trie) + siz * 2 * sizeof(ReverseTrie)) / 1000000) << " MB" << std::endl;
         }
         return compressed;
     }
@@ -100,8 +109,7 @@ private:
         reference = std::unordered_map<int, Trie*>();
         int i = 0;
         for (auto c : alphabet) {
-            auto label = std::to_string(i);
-            reference[i] = dictionary.insert(std::string{c}, label);
+            reference[i] = dictionary.insert(std::string{c}, i);
             i++;
         }
 
@@ -125,8 +133,8 @@ public:
                 parsed += x;
                 auto added = parser_dict->parse(x);
                 if (added != nullptr) {
-                    reference[stoi(added->getLabel())] = added;
-                    if (stoi(added->getLabel()) == c) {
+                    reference[added->getLabel()] = added;
+                    if (added->getLabel() == c) {
                         break;
                     }
                 }
@@ -140,17 +148,17 @@ public:
             auto x = phrase[i];
             auto added = parser_dict->parse(x);
             if (added != nullptr) {
-                reference[stoi(added->getLabel())] = added;
+                reference[added->getLabel()] = added;
             }
         }
 
         return phrase;
     }
 
-    static std::string decompress(std::vector<std::string> const & code, std::set<char> const & alphabet) {
+    static std::string decompress(std::vector<int> const & code, std::set<char> const & alphabet) {
         auto instance = LZWDecompressor<Dict>(alphabet);
-        std::string ans = "";
-        for (auto c: code) ans += instance.parse(std::stoi(c));
+        std::string ans;
+        for (auto c: code) ans += instance.parse(c);
         return ans;
     }
 };

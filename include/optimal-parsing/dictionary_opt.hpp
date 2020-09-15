@@ -15,7 +15,7 @@ private:
     std::unordered_map<char, Trie*> children;
     Trie const * parent = nullptr;
     ReverseTrie const * link = nullptr;
-    std::string label;
+    int label{};
     int depth;
     char edge;
 
@@ -23,7 +23,7 @@ public:
 
     Trie(const Trie *parent, int depth, char edge) : parent(parent), depth(depth), edge(edge) {}
 
-    Trie * insert(std::string const & w, std::string const & code) {
+    Trie * insert(std::string const & w, int const & code) {
         auto current = this;
         for (auto const & c: w) {
             if (!current->children.count(c)) {
@@ -80,11 +80,11 @@ public:
         Trie::link = link;
     }
 
-    const std::string &getLabel() const {
+    int getLabel() const {
         return label;
     }
 
-    void setLabel(const std::string &label) {
+    void setLabel(int label) {
         Trie::label = label;
     }
 
@@ -113,18 +113,19 @@ private:
     Trie const * link = nullptr;
     Trie const * lower_bound = nullptr;
     Trie const * upper_bound = nullptr;
-    bool terminal;
 
 public:
 
-    ReverseTrie(const ReverseTrie *parent, const Trie *lower_bound, const Trie *upper_bound, bool terminal) : parent(
-            parent), lower_bound(lower_bound), upper_bound(upper_bound), terminal(terminal) {}
+    ReverseTrie(const ReverseTrie *parent, const Trie *lower_bound, const Trie *upper_bound) : parent(parent),
+                                                                                               lower_bound(lower_bound),
+                                                                                               upper_bound(
+                                                                                                       upper_bound) {}
 
     ReverseTrie * insert(Trie const * const start, Trie const * const end) { // end to w 99% root Trie
         auto const start_label = start->getEdge();
         if (!children.count(start_label)) {
             // Needs totally new edge
-            children[start_label] = new ReverseTrie(this, start, end, true);
+            children[start_label] = new ReverseTrie(this, start, end);
             return children[start_label];
         }
         // Will go through some edge
@@ -144,8 +145,8 @@ public:
                 RT_lower_ptr = RT_lower_ptr->getParent();
             } else {
                 // We have to split
-                auto *internal = new ReverseTrie(this, child_node->getLower_bound(), RT_lower_ptr, false);
-                auto *side = new ReverseTrie(internal, T_lower_ptr, T_upper_ptr, true);
+                auto *internal = new ReverseTrie(this, child_node->getLower_bound(), RT_lower_ptr);
+                auto *side = new ReverseTrie(internal, T_lower_ptr, T_upper_ptr);
                 child_node->setLower_bound(RT_lower_ptr);
                 child_node->setParent(internal);
 
@@ -159,11 +160,10 @@ public:
         // Edge cases
         if (T_lower_ptr == T_upper_ptr && RT_lower_ptr == RT_upper_ptr) {
             // Edge is precisely covered
-            child_node->setTerminal(true);
             return child_node;
         } else if (T_lower_ptr == T_upper_ptr) {
             // I'm covered, but in RT there are a few chars left (so i become the new internal node)
-            auto *internal = new ReverseTrie(this, start, T_upper_ptr, true);
+            auto *internal = new ReverseTrie(this, start, T_upper_ptr);
             child_node->setLower_bound(RT_lower_ptr);
             child_node->setParent(internal);
 
@@ -202,14 +202,6 @@ public:
         ReverseTrie::upper_bound = upper_bound;
     }
 
-    bool isTerminal() const {
-        return terminal;
-    }
-
-    void setTerminal(bool terminal) {
-        ReverseTrie::terminal = terminal;
-    }
-
     void setChild(char c, ReverseTrie *child) {
         children[c] = child;
     }
@@ -241,18 +233,18 @@ public:
 
   TrieReverseTrie() {
       trie = new Trie(nullptr, 0, 0);
-      trie_rev = new ReverseTrie(nullptr, nullptr, nullptr, false);
+      trie_rev = new ReverseTrie(nullptr, nullptr, nullptr);
       size = 0;
 
       trie->setLink(trie_rev);
       trie_rev->setLink(trie);
   }
 
-  Trie * insert(std::string const & w, std::string const & code) {
+  Trie * insert(std::string const & w, int const & code) {
       return insert(trie, w, code);
   }
 
-  Trie * insert(Trie * const node, std::string const & w, std::string const & code) {
+  Trie * insert(Trie * const node, std::string const & w, int const & code) {
     size += 1;
     auto new_node = node->insert(w, code);
     auto new_node_rev = trie_rev->insert(new_node, trie);
