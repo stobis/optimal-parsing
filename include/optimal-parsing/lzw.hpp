@@ -28,20 +28,20 @@ class LZWCompressor {
 private:
 
     std::set<char> alphabet;
-    Dict dictionary;
+    Dict * dictionary;
 
     LZWDictParser<Dict> * parser_dict;
     Po * parser_out;
 
     void reset() {
-        dictionary = Dict();
+        dictionary = new Dict();
         int i = 0;
         for (auto c : alphabet) {
-            dictionary.insert(std::string{c}, i++);
+            dictionary->insert(std::string{c}, i++);
         }
 
-        parser_dict = new LZWDictParser<Dict>(&dictionary);
-        parser_out = new Po(&dictionary);
+        parser_dict = new LZWDictParser<Dict>(dictionary);
+        parser_out = new Po(dictionary);
     }
 
 public:
@@ -83,7 +83,7 @@ public:
 
         if (DBG) {
             std::cout << "=== STATS ===" << std::endl;
-            auto siz = instance.dictionary.getSize();
+            auto siz = instance.dictionary->getSize();
             auto t = w.size()-1;
             std::cout << "Sizeofs of Trie, ReverseTrie, ptr: " << sizeof(Trie) << " " << sizeof(ReverseTrie) << " " << sizeof(Trie*) << std::endl;
             std::cout << "|D| real: " << siz << std::endl;
@@ -92,6 +92,12 @@ public:
         }
         return compressed;
     }
+
+    ~LZWCompressor() {
+        delete dictionary;
+        delete parser_dict;
+        delete parser_out;
+    }
 };
 
 template<typename Dict>
@@ -99,21 +105,21 @@ class LZWDecompressor {
 private:
 
     std::set<char> alphabet;
-    Dict dictionary;
+    Dict * dictionary;
 
     LZWDictParser<Dict> * parser_dict;
     std::unordered_map<int, Trie*> reference;
 
     void reset() {
-        dictionary = Dict();
+        dictionary = new Dict();
         reference = std::unordered_map<int, Trie*>();
         int i = 0;
         for (auto c : alphabet) {
-            reference[i] = dictionary.insert(std::string{c}, i);
+            reference[i] = dictionary->insert(std::string{c}, i);
             i++;
         }
 
-        parser_dict = new LZWDictParser<Dict>(&dictionary);
+        parser_dict = new LZWDictParser<Dict>(dictionary);
     }
 
 public:
@@ -160,5 +166,10 @@ public:
         std::string ans;
         for (auto c: code) ans += instance.parse(c);
         return ans;
+    }
+
+    ~LZWDecompressor() {
+        delete dictionary;
+        delete parser_dict;
     }
 };

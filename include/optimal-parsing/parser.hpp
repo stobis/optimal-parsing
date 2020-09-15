@@ -54,6 +54,8 @@ public:
     virtual int parse(char) = 0;
 
     virtual std::vector<int> flush() = 0;
+
+    virtual ~OutputParser() {}
 };
 
 class GreedyOutputParser : public OutputParser {

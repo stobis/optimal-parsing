@@ -103,6 +103,12 @@ public:
     void setEdge(char edge) {
         Trie::edge = edge;
     }
+
+    ~Trie() {
+        for (auto & child : children) {
+            delete child.second;
+        }
+    }
 };
 
 class ReverseTrie {
@@ -121,7 +127,7 @@ public:
                                                                                                upper_bound(
                                                                                                        upper_bound) {}
 
-    ReverseTrie * insert(Trie const * const start, Trie const * const end) { // end to w 99% root Trie
+    ReverseTrie * insert(Trie const * const start, Trie const * const end) {
         auto const start_label = start->getEdge();
         if (!children.count(start_label)) {
             // Needs totally new edge
@@ -221,6 +227,12 @@ public:
     void setLink(const Trie *link) {
         ReverseTrie::link = link;
     }
+
+    ~ReverseTrie() {
+        for (auto & child : children) {
+            delete child.second;
+        }
+    }
 };
 
 class TrieReverseTrie {
@@ -279,35 +291,9 @@ public:
         return size;
     }
 
-//    virtual ~TrieReverseTrie() {
-//        destroy(trie);
-//        destroy(trie_rev);
-//    }
-
-    void destroy(Trie* node) {
-        if (node != nullptr) {
-            if (node->getChildren().empty()) {
-                delete(node);
-                return;
-            }
-
-            for (auto & child : node->getChildren()) {
-                destroy(child.second);
-            }
-        }
-    }
-
-    void destroy(ReverseTrie* node) {
-        if (node != nullptr) {
-            if (node->getChildren().empty()) {
-                delete(node);
-                return;
-            }
-
-            for (auto & child : node->getChildren()) {
-                destroy(child.second);
-            }
-        }
+    virtual ~TrieReverseTrie() {
+        delete trie;
+        delete trie_rev;
     }
 };
 

@@ -8,7 +8,7 @@
 
 using namespace std;
 
-int DBG = 1; // 0 - none, 1 - stats, 2 - full
+int DBG = 0; // 0 - none, 1 - stats, 2 - full
 
 std::set<char> get_alphabet(std::string const & w) {
     std::set<char> S;
@@ -43,12 +43,12 @@ public:
 
     void check_word(std::string const & w) {
         auto compressed = LZWCompressor<TrieReverseTrie, OptimalOutputParser>::compress(w);
-//        return;
+
         print(std::string{"Opt"}, w, compressed);
         std::string decompressed = LZWDecompressor<TrieReverseTrie>::decompress(compressed, get_alphabet(w));
         
         assert(decompressed == w);
-//        return;
+
         auto compressed_greedy = LZWCompressor<TrieReverseTrie, GreedyOutputParser>::compress(w);
         print(std::string{"Gre"}, w, compressed_greedy);
         std::string decompressed_greedy = LZWDecompressor<TrieReverseTrie>::decompress(compressed, get_alphabet(w));
@@ -89,9 +89,9 @@ public:
     }
 
     void test_large_random() {
-//        srand(time(NULL));
-        srand(123);
-        auto m = 1000;
+        srand(time(NULL));
+
+        auto m = 1000000;
         auto A = std::vector<char>();
         for (int i = 0; i < 26; ++i) A.push_back(char('a' + i));
         for (int i = 0; i < 1; ++i) {
@@ -105,9 +105,6 @@ int main() {
     std::ios_base::sync_with_stdio(false);
 
     Test test;
-    test.test_large_random();
-    std::cout << "Large random ok" << std::endl;
-    return 0;
     std::cout << "Init ok" << std::endl;
     test.test_hand();
     std::cout << "Hand ok" << std::endl;
